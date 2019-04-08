@@ -2,7 +2,7 @@
 
 ###############################################################################
 ### Lyrebird - Funky Lockscreen Fun  (alpha)
-### Anyone every tried to use your computer while you step away for a second?
+### Anyone every tried to use your computer while you step away for a second? 
 ### April 2019,  MIT License
 ###############################################################################
 
@@ -14,48 +14,68 @@ from datetime import datetime
 from sys import platform
 from cv2 import cv2
 
+### flag to sync the two different input methods
+Capturing = False
+
 def Lyrebird():
 
-   message = "Unexpected Error."
+   global Capturing
 
-   ### take a screenshot and convert it so opencv can process it
-   #ImageGrab.grab().save("test.png")
+   ### Noticed DPI scaling is off at times on Windows
+   ### If it still doesn't work correctly, right click python.exe in Explorer
+   ### and set DPI compatibility as workaround under Compatibility settings
+   if platform == "win32":    
+      ctypes.windll.shcore.SetProcessDpiAwareness(2)
+   
+   ### Take a screenshot and convert it so opencv can process it
    screenshot_temp = ImageGrab.grab()
-   screenshot = np.array(screenshot_temp.convert('RGB'))
+   screenshot = np.array(screenshot_temp)
+   screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
  
    ### create a new fullscreen window and load the screenshot
-   cv2.namedWindow("Lyrebird", cv2.WINDOW_NORMAL)
-   cv2.setWindowProperty("Lyrebird", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-   cv2.imshow("Lyrebird", screenshot) 
+   WindowName = "Lyrebird"
+   cv2.namedWindow(WindowName, cv2.WINDOW_NORMAL)
+   cv2.setWindowProperty(WindowName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+   cv2.imshow(WindowName, screenshot) 
 
-   ### wait for the user to enter a key
-   key = cv2.waitKey()
+   Capturing = True
 
-   ## did the user press ESCAPE?
-   if key != 27:
-   
-      ### ESC was not pressed, take a screenshot
-      camera = cv2.VideoCapture(0)
-      cameraAvailable, frame = camera.read()
+   ### Goal is to take a picture when mouse or keyboard is clicked
+   cv2.setMouseCallback(WindowName, mouseAction)
 
-      if cameraAvailable:
-         prefix = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-         filename = prefix + ".capture.png"
-         cv2.imwrite(filename, frame)
-         
-         camera.release()
-         message = "Lyrebird - Screenshot " + filename 
-     
-      else:
-         message = "Lyrebird - No camera found."
-        
+   while Capturing:
+      if (cv2.waitKey(1) & 0xFF) == 27:
+         webcamCapture()
+         break
+  
    cv2.destroyAllWindows()
-   message = "Lyrebird - Regular Exit."
+  
+def webcamCapture():
+   camera = cv2.VideoCapture(0)
+   cameraAvailable, frame = camera.read()
 
-   return message
+   if cameraAvailable:
+      prefix = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+      filename = prefix + ".capture.png"
+      cv2.imwrite(filename, frame)
+      
+      camera.release()
+      print("Lyrebird - Screenshot " + filename)
 
+   else:
+      print("Lyrebird - No camera found.")
+
+
+def mouseAction(event, x, y, flags, param):
+   global Capturing
+
+   if event == cv2.EVENT_LBUTTONDOWN:
+      webcamCapture()
+      Capturing = False
 
 def LockWorkstation():
+   print("Locking Workstation.")
+   
    if platform == "win32":
       ctypes.windll.user32.LockWorkStation()
    elif platform == "darwin":
@@ -65,10 +85,7 @@ def LockWorkstation():
 
 if __name__ == "__main__":
 
-   result = Lyrebird()
-   print(result)
-
-   print("Locking Workstation.")
+   print("Processing...")
+   Lyrebird()
    LockWorkstation()
-   
    print("Done.")
