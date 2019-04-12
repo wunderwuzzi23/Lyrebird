@@ -8,6 +8,7 @@
 
 import time
 import ctypes
+import subprocess
 import numpy as np
 import pyscreenshot as ImageGrab
 from datetime import datetime
@@ -79,13 +80,14 @@ def LockWorkstation():
    if platform == "win32":
       ctypes.windll.user32.LockWorkStation()
    elif platform == "darwin":
-      ### TODO: figure out how to do this on Mac
-      pass
+      lockMacCommand = "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession"
+      subprocess.run([lockMacCommand, "-suspend"])
 
 
 if __name__ == "__main__":
 
-   print("Processing...")
+   print("[root] ~ # ", end="")
+
    Lyrebird()
    LockWorkstation()
    print("Done.")
